@@ -59,7 +59,7 @@ namespace DatingApp.API.Controllers
             var Claims = new[]
             {
                 new Claim(ClaimTypes.NameIdentifier,userFromRepo.Id.ToString()),
-                new Claim(ClaimTypes.Name,userFromRepo.Username)
+                new Claim(ClaimTypes.Name,userFromRepo.UserName)
             };
 
             var Key = new SymmetricSecurityKey(Encoding.UTF8
