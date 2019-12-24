@@ -85,6 +85,7 @@ namespace DatingApp.API
             });// this service for ignoring the postman test proplem
             services.AddCors();// عشان يسمح بتداول الدومين تاع ال (أي بي أي ) مع الانجلوار
             services.Configure<CloudinarySettings>(Configuration.GetSection("CloudinarySettings"));
+            Mapper.Reset(); // use for reset Mapper services after chaneges on DB migrations like Drop database
             services.AddAutoMapper();
             services.AddTransient<Seed>();
             services.AddScoped<LogUserActivity>();
