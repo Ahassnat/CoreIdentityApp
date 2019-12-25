@@ -13,6 +13,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
 
 namespace DatingApp.API.Controllers
 {
@@ -35,84 +36,91 @@ namespace DatingApp.API.Controllers
 
         }
 
-    [HttpPost("register")]
-    public async Task<IActionResult> Register(UserForRegisterDto userForRegisterDto)
-    {
-        var userToCreate = _mapper.Map<User>(userForRegisterDto); // user Maaper here to map data to User Model After Registration
-
-        var result = await _userManager.CreateAsync(userToCreate, userForRegisterDto.Password);
-
-        var userToReturn = _mapper.Map<UserForDetailedDto>(userToCreate);
-
-        if (result.Succeeded)
+        [HttpPost("register")]
+        public async Task<IActionResult> Register(UserForRegisterDto userForRegisterDto)
         {
-            return CreatedAtRoute("GetUser", new { Controller = "users", id = userToCreate.Id },
-                         userToReturn); //we used CreatedAtRoute() function to return the user info in postman test >>
+            var userToCreate = _mapper.Map<User>(userForRegisterDto); // user Maaper here to map data to User Model After Registration
+
+            var result = await _userManager.CreateAsync(userToCreate, userForRegisterDto.Password);
+
+            var userToReturn = _mapper.Map<UserForDetailedDto>(userToCreate);
+
+            if (result.Succeeded)
+            {
+                return CreatedAtRoute("GetUser", new { Controller = "users", id = userToCreate.Id },
+                             userToReturn); //we used CreatedAtRoute() function to return the user info in postman test >>
+            }
+
+            return BadRequest(result.Errors);
         }
-        
-        return BadRequest(result.Errors);
-    }
 
-    [HttpPost("login")]
-    public async Task<IActionResult> Login(UserForLoginDto userForLoginDto)
-    {
-        var user = await _userManager.FindByNameAsync(userForLoginDto.Username);
-
-        var result = await _signInManager.CheckPasswordSignInAsync(user, userForLoginDto.Password, false);
-
-        if (result.Succeeded)
+        [HttpPost("login")]
+        public async Task<IActionResult> Login(UserForLoginDto userForLoginDto)
         {
-            var appUser = await _userManager.Users.Include(p => p.Photos)
-                    .FirstOrDefaultAsync(u => u.NormalizedUserName == userForLoginDto.Username.ToUpper());
+            var user = await _userManager.FindByNameAsync(userForLoginDto.Username);
 
-            var userToReturn = _mapper.Map<UserForListDto>(appUser);
+            var result = await _signInManager.CheckPasswordSignInAsync(user, userForLoginDto.Password, false);
 
-            return Ok(new
+            if (result.Succeeded)
+            {
+                var appUser = await _userManager.Users.Include(p => p.Photos)
+                        .FirstOrDefaultAsync(u => u.NormalizedUserName == userForLoginDto.Username.ToUpper());
+
+                var userToReturn = _mapper.Map<UserForListDto>(appUser);
+
+                return Ok(new
+                {
+                    token = GenerateJwtToken(appUser),
+                    user = userToReturn
+                });
+            }
+
+            return Unauthorized();
+        }
+
+        private async Task<string> GenerateJwtToken(User user)
         {
-            token = GenerateJwtToken(appUser),
-            user = userToReturn
-        });
-       }
+            //Token By JWT
 
-        return Unauthorized();
-    }
-
-    private string GenerateJwtToken(User user)
-    {
-        //Token By JWT
-
-        var Claims = new[]
-        {
+            var Claims = new List<Claim> // we change the [array] tol List becuse the array in C# is fixed 
+            {
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Name, user.UserName)
             };
 
-        var Key = new SymmetricSecurityKey(Encoding.UTF8
-                    .GetBytes(_config.GetSection("AppSettings:Token").Value));
+            var roles = await _userManager.GetRolesAsync(user);
 
-        var creds = new SigningCredentials(Key, SecurityAlgorithms.HmacSha512Signature);
+            foreach (var role in roles)
+            {
+                Claims.Add(new Claim(ClaimTypes.Role, role)); // add claim to the role of user => check the role in the jwt.io website after extract the the token from postman
+            }
 
-        var tokenDescriptor = new SecurityTokenDescriptor
-        {
-            Subject = new ClaimsIdentity(Claims),
-            Expires = DateTime.Now.AddDays(1),
-            SigningCredentials = creds
+            var Key = new SymmetricSecurityKey(Encoding.UTF8
+                        .GetBytes(_config.GetSection("AppSettings:Token").Value));
 
-        };
+            var creds = new SigningCredentials(Key, SecurityAlgorithms.HmacSha512Signature);
+
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(Claims),
+                Expires = DateTime.Now.AddDays(1),
+                SigningCredentials = creds
+
+            };
 
 
-        var tokenHandler = new JwtSecurityTokenHandler();
+            var tokenHandler = new JwtSecurityTokenHandler();
 
-        var token = tokenHandler.CreateToken(tokenDescriptor);
+            var token = tokenHandler.CreateToken(tokenDescriptor);
 
 
-        //ممكن نختصر الكودين اللي فوق بواحد 
-        //var token= new JwtSecurityTokenHandler().CreateToken(tokenDescriptor);
+            //ممكن نختصر الكودين اللي فوق بواحد 
+            //var token= new JwtSecurityTokenHandler().CreateToken(tokenDescriptor);
 
-        return tokenHandler.WriteToken(token);
+            return tokenHandler.WriteToken(token);
+        }
+
+
+
     }
-
-
-
-}
 }
