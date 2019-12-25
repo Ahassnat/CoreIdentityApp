@@ -21,42 +21,36 @@ namespace DatingApp.API.Controllers
     [ApiController]
     public class AuthController : ControllerBase
     {
-        private readonly IAuthRepository _repo;
         private readonly IConfiguration _config;
         private readonly IMapper _mapper;
         private readonly UserManager<User> _userManager;
         private readonly SignInManager<User> _signInManager;
-        public AuthController(IAuthRepository repo, IConfiguration config, IMapper mapper,
-      
-
+        public AuthController(IConfiguration config, IMapper mapper,
         UserManager<User> userManager, SignInManager<User> signInManager)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _mapper = mapper;
             _config = config;
-            _repo = repo;
 
         }
 
     [HttpPost("register")]
     public async Task<IActionResult> Register(UserForRegisterDto userForRegisterDto)
     {
-
-        userForRegisterDto.Username = userForRegisterDto.Username.ToLower();
-        if (await _repo.UserExists(userForRegisterDto.Username))
-            return BadRequest("UserName is Already Exist");
-
-        // var userToCreate = new User
-        // {
-        //     Username = userForRegisterDto.Username
-        // };
         var userToCreate = _mapper.Map<User>(userForRegisterDto); // user Maaper here to map data to User Model After Registration
 
-        var createdUser = await _repo.Register(userToCreate, userForRegisterDto.Password);
+        var result = await _userManager.CreateAsync(userToCreate, userForRegisterDto.Password);
 
-        var userToReturn = _mapper.Map<UserForDetailedDto>(createdUser);
-        return CreatedAtRoute("GetUser", new { Controller = "users", id = createdUser.Id }, userToReturn); //we used CreatedAtRoute() function to return the user info in postman test >>
+        var userToReturn = _mapper.Map<UserForDetailedDto>(userToCreate);
+
+        if (result.Succeeded)
+        {
+            return CreatedAtRoute("GetUser", new { Controller = "users", id = userToCreate.Id },
+                         userToReturn); //we used CreatedAtRoute() function to return the user info in postman test >>
+        }
+        
+        return BadRequest(result.Errors);
     }
 
     [HttpPost("login")]
