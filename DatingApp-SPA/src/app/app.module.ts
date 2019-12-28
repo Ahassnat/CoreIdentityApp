@@ -5,7 +5,7 @@ import {FormsModule, ReactiveFormsModule} from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { ToastrModule } from 'ngx-toastr';
-import { BsDropdownModule, TabsModule, BsDatepickerModule, PaginationModule, ButtonsModule } from 'ngx-bootstrap';
+import { BsDropdownModule, TabsModule, BsDatepickerModule, PaginationModule, ButtonsModule, ModalModule } from 'ngx-bootstrap';
 import { RouterModule } from '@angular/router';
 import { JwtModule } from '@auth0/angular-jwt';
 import { NgxGalleryModule } from 'ngx-gallery';
@@ -42,6 +42,7 @@ import { HasRoleDirective } from './_directives/hasRole.directive';
 import { UserManagementComponent } from './admin/user-management/user-management.component';
 import { PhotoManagementComponent } from './admin/photo-management/photo-management.component';
 import { AdminService } from './_services/admin.service';
+import { RolesModalComponent } from './admin/roles-modal/roles-modal.component';
 
 
 
@@ -68,7 +69,8 @@ export function tokenGetter() {
       AdminPanelComponent,
       HasRoleDirective,
       UserManagementComponent,
-      PhotoManagementComponent
+      PhotoManagementComponent,
+      RolesModalComponent
    ],
    imports: [
       BrowserModule,
@@ -86,6 +88,7 @@ export function tokenGetter() {
       }), // ToastrModule added
       BsDropdownModule.forRoot(),
       TabsModule.forRoot(),
+      ModalModule.forRoot(),
       NgxGalleryModule,
       RouterModule.forRoot(appRoutes),
       JwtModule.forRoot({
@@ -109,6 +112,9 @@ export function tokenGetter() {
       ListsResolver,
       MessagesResolver,
       AdminService
+   ],
+   entryComponents: [
+      RolesModalComponent
    ],
    bootstrap: [
       AppComponent
